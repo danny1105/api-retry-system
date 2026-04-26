@@ -31,3 +31,10 @@ services:
     depends_on:
       - redpanda
       - microservice-2
+
+  producer:
+    build: ./producer
+    environment:
+      - KAFKA_BROKER=redpanda:9092
+    depends_on:
+      - redpanda
