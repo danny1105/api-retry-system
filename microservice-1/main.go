@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 	"log"
-	"sync"
 	"time"
 	"encoding/json"
 	"bytes"
@@ -69,8 +68,6 @@ func main() {
 		}
 		
 	}
-
-	log.Default().Println("All messages processed")
 }
 
 func processWithRetry(msg Message) {
