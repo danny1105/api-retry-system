@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"log"
+	"os"
 	"time"
 	"encoding/json"
 	"bytes"
@@ -23,7 +24,6 @@ var messages = []Message{
 }
 
 const (
-	kafkaBroker = "localhost:9092"
 	kafkaTopic = "events-retry-topic"
 	groupID = "microservice-1-group"
 	apiURL = "http://localhost:8081/events"
@@ -32,6 +32,7 @@ const (
 func main() {
 	log.Default().Println("Microservice 1 is running")
 
+	kafkaBroker := getEnv("KAFKA_BROKER", "localhost:9092")
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{kafkaBroker},
 		Topic: kafkaTopic,
@@ -68,6 +69,14 @@ func main() {
 		}
 		
 	}
+}
+
+func getEnv(key, defaultValue string) string {
+	val := os.Getenv(key)
+	if val == "" {
+		return defaultValue
+	}
+	return val
 }
 
 func processWithRetry(msg Message) {
