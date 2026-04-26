@@ -7,10 +7,10 @@ import (
 	"time"
 	"encoding/json"
 	"bytes"
+	"context"
+
+	"github.com/segmentio/kafka-go"
 )
-
-var mu sync.Mutex
-
 
 type Message struct {
 	ID string `json:"id"`
@@ -23,13 +23,51 @@ var messages = []Message{
 	{ID: "3", Body: "message 3"},
 }
 
-var apiURL = "http://localhost:8081/events"
+const (
+	kafkaBroker = "localhost:9092"
+	kafkaTopic = "events-retry-topic"
+	groupID = "microservice-1-group"
+	apiURL = "http://localhost:8081/events"
+)
 
 func main() {
 	log.Default().Println("Microservice 1 is running")
 
-	for _, msg := range messages {
-		processWithRetry(msg)
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: []string{kafkaBroker},
+		Topic: kafkaTopic,
+		GroupID: groupID,
+		MinBytes: 1,	// 1B
+		MaxBytes: 10e6, // 10MB
+	})
+
+	defer reader.Close()
+
+	for {
+		msg, err := reader.FetchMessage(context.Background())
+		if err != nil {
+			log.Default().Println("Error fetching message: ", err)
+			continue
+		}
+
+		var m Message
+		err = json.Unmarshal(msg.Value, &m)
+		if err != nil {
+			log.Default().Println("Failed to decode message: ", err)
+			continue
+		}
+
+		log.Default().Println("Received message: ", m.ID)
+
+		processWithRetry(m)
+
+		err = reader.CommitMessages(context.Background(), msg)
+		if err != nil {
+			log.Default().Println("Failed to commit message: ", err)
+		} else {
+			log.Default().Println("Committed message: ", m.ID)
+		}
+		
 	}
 
 	log.Default().Println("All messages processed")
