@@ -17,12 +17,6 @@ type Message struct {
 	Body string `json:"body"`
 }
 
-var messages = []Message{
-	{ID: "1", Body: "message 1"},
-	{ID: "2", Body: "message 2"},
-	{ID: "3", Body: "message 3"},
-}
-
 const (
 	kafkaTopic = "events-retry-topic"
 	groupID = "microservice-1-group"
