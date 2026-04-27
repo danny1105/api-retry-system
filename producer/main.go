@@ -43,24 +43,23 @@ func main() {
 	log.Println("Producing messages to topic: ", topic)
 
 	for _, m := range messages {
-		data, err := json.Marshal(m)
-		if err != nil {
-			log.Println("marshal error: ", err)
-			continue
-		}
+		data, _ := json.Marshal(m)
 
-		err = writer.WriteMessages(context.Background(),
-			kafka.Message{Value: data},
-		)
+		for {
+			err := writer.WriteMessages(context.Background(),
+				kafka.Message{Value: data},
+			)
 
-		if err != nil {
-			log.Println("failed to produce:", err)
-		} else {
+			if err != nil {
+				log.Println("⏳ Kafka not ready, retrying in 2s:", err)
+				time.Sleep(2 * time.Second)
+				continue
+			}
+
 			log.Println("produced:", m.ID)
+			break
 		}
-
-		time.Sleep(1 * time.Second) // small gap for readability
-	}
+}
 
 	log.Println("Done producing messages")
 }
