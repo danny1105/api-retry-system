@@ -1,6 +1,6 @@
 package main
 
-import ( 
+import (
 	"encoding/json"
 	"log"
 	"net/http"
@@ -8,15 +8,18 @@ import (
 )
 
 type Message struct {
-	ID	  string    `json:"id"`
-	Body  string `json:"body"`
+	ID   string `json:"id"`
+	Body string `json:"body"`
 }
 
-var mu sync.Mutex
+var (
+	mu        sync.Mutex
+	processed = make(map[string]bool)
+)
 
 func eventHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		log.Default().Printf("Invalid request method: %s", r.Method)
+		log.Printf("Invalid request method: %s", r.Method)
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
@@ -24,13 +27,13 @@ func eventHandler(w http.ResponseWriter, r *http.Request) {
 	var msg Message
 	err := json.NewDecoder(r.Body).Decode(&msg)
 	if err != nil {
-		log.Default().Printf("Error decoding JSON: %v", err)
+		log.Printf("Error decoding JSON: %v", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	if msg.ID == "" {
-		log.Default().Println("Missing 'id' field in JSON")
+		log.Println("Missing 'id' field in JSON")
 		http.Error(w, "Missing 'id' field", http.StatusBadRequest)
 		return
 	}
@@ -38,16 +41,24 @@ func eventHandler(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	log.Println("Processing Message: ", msg.ID)
+	if processed[msg.ID] {
+		log.Println("Duplicate message received:", msg.ID)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Duplicate ignored"))
+		return
+	}
+
+	log.Println("Processing message:", msg.ID)
+
+	processed[msg.ID] = true
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Processed"))
 }
 
-
 func main() {
 	http.HandleFunc("/events", eventHandler)
 
-	log.Default().Println("Microservice 2 is running on port 8081...")
+	log.Println("Microservice 2 is running on port 8081...")
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }
