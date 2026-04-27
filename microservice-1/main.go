@@ -18,9 +18,8 @@ type Message struct {
 }
 
 const (
-	kafkaTopic = "events-retry-topic"
+	kafkaTopic = "retry-topic"
 	groupID = "microservice-1-group"
-	apiURL = "http://localhost:8081/events"
 )
 
 func main() {
@@ -91,6 +90,8 @@ func callPostAPI(msg Message) error {
 	if err != nil {
 		return err
 	}
+
+	apiURL := getEnv("API_URL", "http://localhost:8081/events")
 
 	response, err := http.Post(apiURL, "application/json", bytes.NewBuffer(data))
 	if err != nil {

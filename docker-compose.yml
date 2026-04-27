@@ -28,6 +28,7 @@ services:
     build: ./microservice-1
     environment:
       - KAFKA_BROKER=redpanda:9092
+      - API_URL=http://microservice-2:8081/events
     depends_on:
       - redpanda
       - microservice-2
